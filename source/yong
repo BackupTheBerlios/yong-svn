@@ -11,6 +11,11 @@ my $config_file='/etc/yong.conf';
 my $next_is_config_file;
 my $debug=0;
 
+my $interval; #server checking interval
+my $http_page_size_check; #check result page size for huge changes
+
+my @general_buffer;
+
 
 
 die "failed to load config file $config_file : $!\n" unless (-r $config_file);
@@ -30,15 +35,14 @@ next;}
 
 
 if ($command =~ '-*help') {
-    print "Yong monitor\n";
+    print "Yet anOther Network monitorinG\n";
     print "-c to specify another config file\n";
     print "-D to run in debug mode\n";
     print "-help to see this message\n";
     print "\n";
-    print "\n";
 print "Yong is a tool monitoring services over servers .\n";
 print "For additional information, see http:\/\/yong.berlios.de\/\n";
-    next;
+    exit;
 } elsif ($command =~ '-*D') {
 $debug=1;
 next;
@@ -51,6 +55,24 @@ next;
     undef $next_is_config_file;
 
 
+open CONFIG,"$config_file";
+
+my @config_buffer=<CONFIG>;
+
+foreach my $line (@config_buffer) {
+    next if ($line =~ /^\#/ );
+
+    if ($line =~ /interval=/) {
+	$line=~ s/interval=//;
+	$interval=$line;
+	&debug ("interval is $line");
+    }
+
+    if ($line =~ /http_page_size_check=/) {
+	$line=~ s/http_page_size_check=//;
+	$http_page_size_check=$line;
+	&debug ("http_page_size_check is $line");
+    }
 
 
 
@@ -60,21 +82,7 @@ next;
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+}
 
 
 
