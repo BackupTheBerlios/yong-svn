@@ -5,3 +5,35 @@ use warnings;
 use IO::Socket::INET;
 use Sys::Hostname;
 
+
+
+my $command;
+my $config_file;
+my $next_is_config_file;
+
+foreach $command (@ARGV) {
+
+    if ($next_is_config_file) {
+	print "$command is new config file\n";
+    }
+
+
+
+if ($command =~ '-*help') {
+    print "Yong monitor\n";
+    print "-c to specify another config file\n";
+    print "-help to see this message\n";
+    print "\n";
+    print "\n";
+print "Yong is a tool monitoring services over servers .\n";
+print "For additional information, see http:\/\/yong.berlios.de\/\n";
+    next;
+
+} elsif ($command =~ '-*c') {
+$next_is_config_file=1;
+}
+
+}
+    undef $next_is_config_file;
+
+
