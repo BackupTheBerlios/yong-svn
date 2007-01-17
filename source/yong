@@ -14,7 +14,7 @@ my $debug=0;
 my $interval; #server checking interval
 my $http_page_size_check; #check result page size for huge changes
 
-my @general_buffer;
+
 
 
 
@@ -58,24 +58,27 @@ next;
 open CONFIG,"$config_file";
 
 my @config_buffer=<CONFIG>;
+my $current_server;
 
 foreach my $line (@config_buffer) {
     next if ($line =~ /^\#/ );
-
+    chomp $line;
     if ($line =~ /interval=/) {
 	$line=~ s/interval=//;
 	$interval=$line;
-	&debug ("interval is $line");
+	&debug ("interval is $line\n");
     }
 
     if ($line =~ /http_page_size_check=/) {
 	$line=~ s/http_page_size_check=//;
 	$http_page_size_check=$line;
-	&debug ("http_page_size_check is $line");
+	&debug ("http_page_size_check is $line\n");
     }
 
-
-
+    if ($line =~ /\{/) {
+	$line=~ s/\W*\{\W*//;
+	print "gathering $line information\n";
+    }
 
 
 
