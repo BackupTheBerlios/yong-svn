@@ -6,34 +6,86 @@ use IO::Socket::INET;
 use Sys::Hostname;
 
 
-
 my $command;
-my $config_file;
+my $config_file='/etc/yong.conf';
 my $next_is_config_file;
+my $debug=0;
+
+
+
+die "failed to load config file $config_file : $!\n" unless (-r $config_file);
+
 
 foreach $command (@ARGV) {
 
     if ($next_is_config_file) {
-	print "$command is new config file\n";
-    }
-
+	if (-r "$command") {
+	    &debug ("config file is now $command\n");
+	    $config_file=$command;
+	    } else {
+		die "failed to load config file $command : $!\n";
+	    }
+$next_is_config_file=0;
+next;}
 
 
 if ($command =~ '-*help') {
     print "Yong monitor\n";
     print "-c to specify another config file\n";
+    print "-D to run in debug mode\n";
     print "-help to see this message\n";
     print "\n";
     print "\n";
 print "Yong is a tool monitoring services over servers .\n";
 print "For additional information, see http:\/\/yong.berlios.de\/\n";
     next;
-
+} elsif ($command =~ '-*D') {
+$debug=1;
+next;
 } elsif ($command =~ '-*c') {
 $next_is_config_file=1;
+next;
 }
 
 }
     undef $next_is_config_file;
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+sub debug {
+    if ($debug) {
+	print "DEBUG : $_[0]";
+    }}
