@@ -4,24 +4,25 @@ use strict;
 use warnings;
 use IO::Socket::INET;
 use Sys::Hostname;
+use Net::Ping;
 
+my $config_file='/etc/yong.conf'; # main config file 
+my $debug=0;                      # Debug mode
+my $verbose=0;                    # Verbose mode
+my $interval=5;                     # target checking interval
+my $http_page_size_check;         # check result page size for huge changes
+my $warning_command;                     # command to exec on warnings
 
-my $command;
-my $config_file='/etc/yong.conf';
-my $next_is_config_file;
-my $debug=0;
+our %target;                       # main targets hash
 
-my $interval; #server checking interval
-my $http_page_size_check; #check result page size for huge changes
-
-
-
+my $next_is_config_file;          
+my $current_target;
 
 
 die "failed to load config file $config_file : $!\n" unless (-r $config_file);
 
 
-foreach $command (@ARGV) {
+foreach my $command (@ARGV) {
 
     if ($next_is_config_file) {
 	if (-r "$command") {
@@ -37,14 +38,18 @@ next;}
 if ($command =~ '-*help') {
     print "Yet anOther Network monitorinG\n";
     print "-c to specify another config file\n";
+    print "-v to be little more verbose\n";
     print "-D to run in debug mode\n";
-    print "-help to see this message\n";
+    print "--help to see this message\n";
     print "\n";
-print "Yong is a tool monitoring services over servers .\n";
+print "Yong is a tool monitoring services over servers/targets .\n";
 print "For additional information, see http:\/\/yong.berlios.de\/\n";
     exit;
 } elsif ($command =~ '-*D') {
 $debug=1;
+next;
+} elsif ($command =~ '-*v') {
+$verbose=1;
 next;
 } elsif ($command =~ '-*c') {
 $next_is_config_file=1;
@@ -54,11 +59,9 @@ next;
 }
     undef $next_is_config_file;
 
-
 open CONFIG,"$config_file";
 
 my @config_buffer=<CONFIG>;
-my $current_server;
 
 foreach my $line (@config_buffer) {
     next if ($line =~ /^\#/ );
@@ -69,34 +72,176 @@ foreach my $line (@config_buffer) {
 	&debug ("interval is $line\n");
     }
 
-    if ($line =~ /http_page_size_check=/) {
+
+    elsif ($line =~ /http_page_size_check=/) {
 	$line=~ s/http_page_size_check=//;
 	$http_page_size_check=$line;
 	&debug ("http_page_size_check is $line\n");
     }
-
-    if ($line =~ /\{/) {
-	$line=~ s/\W*\{\W*//;
-	print "gathering $line information\n";
+    elsif ($line =~ /warning_command=/) {
+	$line=~ s/warning_command=//;
+	$warning_command=$line;
+	&debug ("warning_command is $line\n");
     }
 
+    elsif ($line =~ /\{/) {
+	$line=~ s/\W*\{\W*//;
+	$current_target=$line;
+	print "--- gathering \"$current_target\" information\n";
+    }
 
+    elsif ($line =~ /servername=/) {
+	$line =~ s/servername=//;
+	$target{$current_target}{'hostname'}=$line;
+    }
+
+    elsif ($line =~ /icmp_echo_check=1/) {
+	$line =~ s/icmp_echo_check=//;
+	$target{$current_target}{'icmp_echo_check'}=$line;
+    }
+
+    elsif ($line =~ /udp_dns_server_check=1/) {
+	$line =~ s/udp_dns_server_check=//;
+	$target{$current_target}{'udp_dns_server_check'}=$line;
+    }
+
+    elsif ($line =~ /udp_ntp_server_check=1/) {
+	$line =~ s/udp_ntp_server_check=//;
+	$target{$current_target}{'udp_dns_server_check'}=$line;
+    }
+
+    elsif ($line =~ /.*:.*:.*:/) {
+	$line =~ s/\"//g;
+	my @contain=(split (':',$line));
+
+
+	$target{$current_target}{$contain[0]}{'service_name'}=$contain[0];
+	$target{$current_target}{$contain[0]}{'dport'}=$contain[1];
+	$target{$current_target}{$contain[0]}{'send'}=$contain[2];
+	$target{$current_target}{$contain[0]}{'expect'}=$contain[3];
+	$target{$current_target}{$contain[0]}{'timeout'}=$contain[4];
+    } else {
+	next if $line =~ /general/;
+	next if $line =~ /]/;
+	next if $line =~ /\}/;
+	next if $line eq '';
+	print "*** WARNING ! can not understand this directive\n\"$line\"\n\n";
+    }
+}
+
+
+    print "\n\n--- Probing started ---\n\n";
+while (1) {
+
+foreach my $target_name (keys %target) {
+
+
+
+    foreach my $element (keys %{$target{$target_name}}) {
+
+
+	if ($element =~ 'hostname') {
+	    next;
+	} elsif ($element =~ 'icmp_echo_check') {
+	    &icmp_echo_check($target_name,$element);
+	    next;
+	} elsif ($element =~ 'udp_ntp_server_check') {
+	    &udp_ntp_server_check($target_name,$element);
+	    next;
+	} elsif ($element =~ 'udp_dns_server_check') {
+	    &udp_dns_server_check($target_name,$element);
+	    next;
+	} else {
+	    	&hotplugable($target_name,$element);
+	    }
+
+
+
+
+    }
 
 
 
 
 }
 
+sleep $interval;
+
+}
+
+sub icmp_echo_check {
+    my ($target_name,$element)=@_;
+    &debug ("icmp echo check here , target is \"$target_name\" and element is \"$element\"\n");
+
+our $p = Net::Ping->new('icmp');
+if ($p->ping($target_name)) {
+    &verbose  ("$target_name is alive.\n");
+} elsif ($p->ping($target_name)) {
+    &verbose ("$target_name is alive.\n");
+} elsif ($p->ping($target_name)) {
+    &verbose ("$target_name is alive.\n");
+    } else {
+	&warning ("Echo Request Failed \"$target_name\"\n");
+    }
+
+}
+
+sub udp_dns_server_check {
+    my ($target_name,$element)=@_;
+    &debug ("udp dns server check here, target is \"$target_name\" and element is \"$element\"\n");
+}
+
+sub udp_ntp_server_check {
+    my ($target_name,$element)=@_;
+    &debug ("udp ntp server check here, target is \"$target_name\" and element is \"$element\"\n");
+}
+
+sub hotplugable {
+    my ($target_name,$element)=@_;
+    my $dport=$target{$target_name}{$element}{'dport'};
+    my $timeout=$target{$target_name}{$element}{'timeout'};
+    my $send=$target{$target_name}{$element}{'send'};
+    my $expect=$target{$target_name}{$element}{'expect'};
 
 
+    &debug ("hotplugable here, target is \"$target_name\" and element is \"$element\" and target port is \"$dport\" \n");
 
+my $server=IO::Socket::INET->new (
+			        Proto => 'tcp',
+				PeerAddr => $target_name,
+				PeerPort => $dport,
+                                Timeout => $timeout ,   #FIXME : looks like timeout is no longer available 
+			  ) or &warning ("Unable to make connection \"$target_name\" , \"$element\" , \"$dport\"  $!\n");
 
+if ($server) {
+print $server "$send\n";
+my @message = <$server>;
+close $server;
+my $matched;
+foreach (@message) {
 
-
-
-
+    if ($_ =~ /$expect/) {
+	&verbose ("target \"$target_name\" service \"$element\" matched \"$expect\"\n");
+	$matched=1;
+	last;	    
+    }}
+&warning ("target \"$target_name\" service \"$element\" did not matched \"$expect\"\n") unless $matched;
+}}
 
 sub debug {
     if ($debug) {
-	print "DEBUG : $_[0]";
+	print "### DEBUG : $_[0]";
     }}
+
+sub verbose {
+    if ($verbose) {
+	print "III : $_[0]";
+    }}
+
+sub warning {
+    print ("!!! : ",scalar(localtime)," : $_[0]");
+if ($warning_command) { system ("$warning_command -f1000")};
+    return (0);
+}
+
+close CONFIG;
