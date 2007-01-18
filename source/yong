@@ -1,11 +1,16 @@
 #!/usr/bin/perl
 
+#bug 1 > section names in config file get resolved to ip not the severname .
+#bus 2 > outputs have to be clear, using OK and element at first 
+#bug 3 > still no timeout 
+
 use strict;
 use warnings;
 use IO::Socket::INET;
 use Sys::Hostname;
 use Net::Ping;
 
+my $EOL = "\015\012";
 my $config_file='/etc/yong.conf'; # main config file 
 my $debug=0;                      # Debug mode
 my $verbose=0;                    # Verbose mode
@@ -210,11 +215,11 @@ my $server=IO::Socket::INET->new (
 			        Proto => 'tcp',
 				PeerAddr => $target_name,
 				PeerPort => $dport,
-                                Timeout => $timeout ,   #FIXME : looks like timeout is no longer available 
+                                Timeout => 10 ,   #FIXME : looks like timeout is no longer available 
 			  ) or &warning ("Unable to make connection \"$target_name\" , \"$element\" , \"$dport\"  $!\n");
 
 if ($server) {
-print $server "$send\n";
+print $server "$send".$EOL;
 my @message = <$server>;
 close $server;
 my $matched;
