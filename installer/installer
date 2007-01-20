@@ -23,10 +23,13 @@ use IO::Socket::INET;
 use Net::Ping;
 
 if (($ENV{'USER'}) eq 'root') {
-    print "installing yong script in /usr/bin/yong";
+    print "installing yong script in /usr/bin/yong\n";
     system "cp source/yong /usr/bin/yong";
-    print "installing yong.conf /etc/yong.conf";
+    print "installing yong.conf /etc/yong.conf\n";
     system "cp config/yong.conf /etc/";
 } else {
-    print "non root\n";
+    print "you are not root , please run as root\n";
 }
+
+
+print "Install Completed . take a look at /etc/yong.conf and README file \n";
