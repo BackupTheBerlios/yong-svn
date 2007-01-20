@@ -1,0 +1,32 @@
+#!/usr/bin/perl
+#
+#             Yong 
+# Yet anOther Network monitorinG
+#
+#
+# Copyright (c) 2007 Armin ranjbar <zoup@zoup.org> .
+# 
+# This program is free software; you can redistribute it and/or modify it
+# under the terms of the GNU General Public License as published by the Free
+# Software Foundation; either version 2 of the License, or (at your option) 
+# any later version.
+#
+
+# bug , better expect send reporting
+# Loging on filesystem 
+
+
+
+use strict;
+use warnings;
+use IO::Socket::INET;
+use Net::Ping;
+
+if (($ENV{'USER'}) eq 'root') {
+    print "installing yong script in /usr/bin/yong";
+    system "cp source/yong /usr/bin/yong";
+    print "installing yong.conf /etc/yong.conf";
+    system "cp config/yong.conf /etc/";
+} else {
+    print "non root\n";
+}
