@@ -25,7 +25,7 @@ use Net::Ping;
 if (($ENV{'USER'}) eq 'root') {
     print "installing yong script in /usr/bin/yong\n";
     system "cp source/yong /usr/bin/yong";
-    print "installing yong.conf /etc/yong.conf\n";
+    print "installing yong.conf /etc/yong.conf\n"; 
     system "cp config/yong.conf /etc/";
 } else {
     print "you are not root , please run as root\n";

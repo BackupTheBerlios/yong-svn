@@ -12,9 +12,6 @@
 # any later version.
 #
 
-# bug , better expect send reporting
-# Loging on filesystem 
-
 
 
 use strict;
@@ -29,10 +26,13 @@ my $verbose=0;                    # Verbose mode
 my $interval=5;                   # target checking interval
 my $http_page_size_check;         # check result page size for huge changes
 my $warning_command;              # command to exec on warnings
+my $wlog='/var/log/yong.log';     # warning logs
 
 our %target;                      # main targets hash
 
 my $next_is_config_file;         
+my $next_is_wlog_file;         
+
 my $current_target;
 
 
@@ -49,6 +49,13 @@ foreach my $command (@ARGV) {
 		die "Failed to load config file $command : $!\n";
 	    }
 $next_is_config_file=0;
+next;
+}
+
+    if ($next_is_wlog_file) {
+	    &debug ("Log path is now $command\n");
+	    $wlog=$command;
+        $next_is_wlog_file=0;
 next;
 }
 
@@ -72,12 +79,18 @@ next;
 } elsif ($command =~ '-*c') {
 $next_is_config_file=1;
 next;
+} elsif ($command =~ '-*l') {
+$next_is_wlog_file=1;
+next;
 }}
 undef $next_is_config_file;
 
 ### start reading config file and put variables into main hash
-
-open CONFIG,"$config_file";
+open CONFIG,"<$config_file" or die "unable to open config file : $! \n";
+open WLOG,">$wlog" or die "unable to open config file : $! \n";
+select WLOG; 
+$|=1;
+select STDOUT;
 
 my @config_buffer=<CONFIG>;
 
@@ -252,7 +265,7 @@ foreach (@message) {
 	$matched=1;
 	last;	    
     }}
-&warning ("UNMATCHED \"$element\" on \"$hostname\".\n") unless $matched;
+&warning ("UNMATCHED \"$element\" on \"$hostname\" , sending \"$send\" and expect \"$expect\" but got \"$message[0]\" .\n") unless $matched;
 }}
 
 
@@ -270,6 +283,7 @@ sub verbose {
 ### reformat warning message and execute warning_command
 sub warning {
     print ("!!! : ",scalar(localtime)," : $_[0]");
+    print WLOG ("!!! : ",scalar(localtime)," : $_[0]");
 if ($warning_command) { system ("$warning_command")};
     return (0);
 }
