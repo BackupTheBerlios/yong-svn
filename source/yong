@@ -13,6 +13,7 @@
 #
 
 
+# on kill signal , print message to wlog and stdout 
 
 use strict;
 use warnings;
