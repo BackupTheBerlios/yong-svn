@@ -19,6 +19,7 @@ use strict;
 use warnings;
 use IO::Socket::INET;
 use Net::Ping;
+use Net::DNS;
 
 my $EOL = "\015\012";
 my $config_file='/etc/yong.conf'; # main config file 
@@ -211,14 +212,20 @@ if ($p->ping($hostname)) {
     }}
 
 ### Dns server check section
+### TODO : aks target nameserver for answer 
 sub udp_dns_server_check {
     my ($target_name,$element,$hostname)=@_;
     &debug ("DNS Check \"$hostname\".\n");
-
-
-
-
-
+    my $res   = Net::DNS::Resolver->new;
+    my $query = $res->search("$hostname");
+  
+    if ($query) {
+	foreach my $rr ($query->answer) {
+	    next unless $rr->type eq "A";
+	}
+    } else {
+       &warning ("DNS QUERY FAILED \"$hostname\".\n");
+    }
 }
 
 ### NTP server check Ssection
