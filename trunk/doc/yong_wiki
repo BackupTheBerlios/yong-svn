@@ -1,7 +1,7 @@
 =====What is yong ? =====
 
 
-Yong is server/network/uptime monitor that is completely independent of server side software , this means that you did not need to run anything on your target server , Yong independently check target server for icmp echo request , dns hostname request , and any tcp based protocol via **hot-pluggable mechanism**  .
+Yong is server/network/uptime monitor that is completely independent of server side software , this means that you did not need to run anything on your target server , Yong independently check target server for icmp echo request , dns hostname request , and any tcp based protocol via **hot-plugable mechanism**  .
 
 =====Features=====
 
@@ -13,9 +13,9 @@ Yong is server/network/uptime monitor that is completely independent of server s
   * its small ( nearly 350 line of code  ) and flexible 
 
 
-=====hot-pluggable mechanism=====
+=====hot-plugable mechanism=====
 
-most of major used tcp protocols are probable using simple telnet , nc commands , this is what Yong exactly does , you can ask yong to prob target tcp port 80 of some webserver , send "GET" and expect something that you expect on html index page <head> for example , this is both **Availability** and **Validity** check .
+most of major used tcp protocols are probable using simple telnet , nc commands , this is what Yong exactly does , you can ask yong to prob target tcp port 80 of some web server , send "GET" and expect something that you expect on html index page <head> for example , this is both **Availability** and **Validity** check .
 
 
 this is how exactly you can add target items in config file :
@@ -32,7 +32,7 @@ http:80:"GET":"HEAD":10
 
 =====Download and Install=====
 
-you can grab a release or currect stable version over SVN , i would suggest using SVN .
+you can grab a release or correct stable version over SVN , i would suggest using SVN .
 
 file release system url is : 
 https://developer.berlios.de/projects/yong/ 
@@ -94,12 +94,12 @@ general [
 
 interval=1
 
-warning_command=echo "$hostname service $element was unoperational($error) at $date" | mail admin@isp.com -s "problem with $hostname"
+warning_command=echo "$hostname service $element was not operational($error) at $date" | mail admin@isp.com -s "problem with $hostname"
 ]
 </code>
 
 **interval** is number of second to wait after that total probes are done \\
-**warning_commmand** its the command to execute of warning , this can be freely anything , for example this directive :\\
+**warning_command** its the command to execute of warning , this can be freely anything , for example this directive :\\
 <code>warning_command=beep</code>\\
 simply runs the simple beep command without any arguments , you may also want more complex commands for sending mails and or etc so you probably need some useful variables to make more clear warnings , there are allowed variable to specify in warning_command : \\
 <code>
@@ -132,16 +132,16 @@ ssh:22:"Hola!":"mismatch":10
 
 in this example , **hostname** is 'example.com' while all of 'http','pop3','ftp','smtp','ssh' are **elements** , the target entry is quite simple , you can understand if all on your own , anyway im going to explain it a little here :\\
 
-you always have to start entry with a name , example_server in ths example and keep directives of target enclosed in { and } \\
+you always have to start entry with a name , example_server in this example and keep directives of target enclosed in { and } \\
 \\
 **servername** is main and most essential part of any target entry , its FQDN of target server , it can be IP address or hostname that is resolved into Right ip address \\
-**udp_dns_server_check** takes bolean value to check to check if target dns server responding to its own queries or not , yong asks A record of servername from target dns server \\
-**udp_ntp_server_check** takes bolean value to check to check if target NTP server responding to its own queries or not \\
-**icmp_echo_check** send icmp echo request to target or not , its mainly good thing to do unless icmp packets get discarded in your envinronment .\\
+**udp_dns_server_check** takes Boolean value to check to check if target dns server responding to its own queries or not , yong asks A record of server name from target dns server \\
+**udp_ntp_server_check** takes Boolean value to check to check if target NTP server responding to its own queries or not \\
+**icmp_echo_check** send icmp echo request to target or not , its mainly good thing to do unless icmp packets get discarded in your environment .\\
 \\
 
 that was the essential parts of target entry , the rest of them are most useful and like all good thing , Optional :\\
-the hotplugable probing mechanism is simple :\\
+the hot-plugable probing mechanism is simple :\\
 
 <code><protocol name>:<target tcp port>:"message to send":"answer to expect":<timeout></code>\\
 **<protocol name>**: this can be anything , its interval\\
@@ -151,7 +151,7 @@ the hotplugable probing mechanism is simple :\\
 **<timeout>**: timeout for given session .\\
 \\
 
-easy hum ? well , lets set some example , suppose you have heavily loaded web server and you want to get noticed when its get crashed , also there are some security weakesses that allows some remote attacker to change target index page .\\
+easy hum ? well , lets set some example , suppose you have heavily loaded web server and you want to get noticed when its get crashed , also there are some security weaknesses that allows some remote attacker to change target index page .\\
 
 yong target entry for that server would look like :
 
@@ -165,5 +165,5 @@ http:80:"GET":"<b>isp</b>":10
 }
 </code>
 
-this entry will ask GET to get index html , if target server was unable to respond in 10 second the warning command is generated , otherwise yong will check the result of command to see if its maching "<b>isp</b>" which is some string that you are sure is always available on your index page , a warning_command will get generated if result did not matched to given string .\\
+this entry will ask GET to get index html , if target server was unable to respond in 10 second the warning command is generated , otherwise yong will check the result of command to see if its matchs "<b>isp</b>" which is some string that you are sure is always available on your index page , a warning_command will get generated if result did not matched to given string .\\
 
