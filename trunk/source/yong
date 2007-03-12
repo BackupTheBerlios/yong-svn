@@ -12,8 +12,14 @@
 # any later version.
 #
 
+# TODO : 
+# ntp element 
+# MRTG output 
 
-# on kill signal , print message to wlog and stdout 
+
+# BUG : 
+# none known 
+
 
 use strict;
 use warnings;
@@ -34,8 +40,14 @@ our %target;                      # main targets hash
 
 my $next_is_config_file;         
 my $next_is_wlog_file;         
-
 my $current_target;
+
+
+$SIG{HUP} = \&exitlog;
+$SIG{INT} = \&exitlog;
+$SIG{QUIT} = \&exitlog;
+$SIG{KILL} = \&exitlog;
+$SIG{TERM} = \&exitlog;
 
 
 die "Failed to load config file $config_file : $!\n" unless (-r $config_file);
@@ -47,44 +59,44 @@ foreach my $command (@ARGV) {
 	if (-r "$command") {
 	    &debug ("Config file is now $command\n");
 	    $config_file=$command;
-	    } else {
-		die "Failed to load config file $command : $!\n";
-	    }
-$next_is_config_file=0;
-next;
-}
+	} else {
+	    die "Failed to load config file $command : $!\n";
+	}
+	$next_is_config_file=0;
+	next;
+    }
 
     if ($next_is_wlog_file) {
-	    &debug ("Log path is now $command\n");
-	    $wlog=$command;
+	&debug ("Log path is now $command\n");
+	$wlog=$command;
         $next_is_wlog_file=0;
-next;
-}
+	next;
+    }
 
-if ($command =~ '-*help') {
-    print "Yet anOther Network monitorinG\n";
-    print "-c to specify another config file\n";
-    print "-v to be little more verbose\n";
-    print "-D to run in debug mode\n";
-    print "--help to see this message\n";
-    print "\n";
-print "Yong is a tool monitoring services over servers/targets .\n";
-print "For additional information, see http:\/\/yong.berlios.de\/\n";
-    exit;
-} elsif ($command =~ '-*D') {
-$debug=1;
-$verbose=1;
-next;
-} elsif ($command =~ '-*v') {
-$verbose=1;
-next;
-} elsif ($command =~ '-*c') {
-$next_is_config_file=1;
-next;
-} elsif ($command =~ '-*l') {
-$next_is_wlog_file=1;
-next;
-}}
+    if ($command =~ '-*help') {
+	print "Yet anOther Network monitorinG\n";
+	print "-c to specify another config file\n";
+	print "-v to be little more verbose\n";
+	print "-D to run in debug mode\n";
+	print "--help to see this message\n";
+	print "\n";
+	print "Yong is a tool monitoring services over servers/targets .\n";
+	print "For additional information, see http:\/\/yong.berlios.de\/\n";
+	exit;
+    } elsif ($command =~ '-*D') {
+	$debug=1;
+	$verbose=1;
+	next;
+    } elsif ($command =~ '-*v') {
+	$verbose=1;
+	next;
+    } elsif ($command =~ '-*c') {
+	$next_is_config_file=1;
+	next;
+    } elsif ($command =~ '-*l') {
+	$next_is_wlog_file=1;
+	next;
+    }}
 undef $next_is_config_file;
 
 ### start reading config file and put variables into main hash
@@ -128,19 +140,20 @@ foreach my $line (@config_buffer) {
 	$target{$current_target}{'hostname'}=$line;
     }
 
-    elsif ($line =~ /icmp_echo_check=1/) {
+    elsif ($line =~ /icmp_echo_check=/) {
 	$line =~ s/icmp_echo_check=//;
 	$target{$current_target}{'icmp_echo_check'}=$line;
     }
 
-    elsif ($line =~ /udp_dns_server_check=1/) {
+    elsif ($line =~ /udp_dns_server_check=/) {
 	$line =~ s/udp_dns_server_check=//;
 	$target{$current_target}{'udp_dns_server_check'}=$line;
+
     }
 
-    elsif ($line =~ /udp_ntp_server_check=1/) {
+    elsif ($line =~ /udp_ntp_server_check=/) {
 	$line =~ s/udp_ntp_server_check=//;
-	$target{$current_target}{'udp_dns_server_check'}=$line;
+	$target{$current_target}{'udp_ntp_server_check'}=$line;
     }
 
     elsif ($line =~ /.*:.*:.*:/) {
@@ -156,25 +169,23 @@ foreach my $line (@config_buffer) {
     } else {
 	next if $line =~ /general/;
 	next if $line =~ /]/;
-	next if $line =~ /\}/;
-	next if $line eq '';
-	&warning ("Error on Directive \"$line\"\n\n");
-    }
+    next if $line =~ /\}/;
+    next if $line eq '';
+    &warning ("Error on Directive \"$line\"\n\n");
+}
 }
 
-    close CONFIG;
+close CONFIG;
 
 
 ### probing section
 
-    print "\n--- Probing started --- ",scalar(localtime),"\n\n";
+print "\n--- Probing started --- ",scalar(localtime),"\n\n";
 while (1) {
     print "--- ",scalar(localtime),"\n";
 
 foreach my $target_name (keys %target) {
-	my $hostname=$target{$target_name}{'hostname'};
-
-
+    my $hostname=$target{$target_name}{'hostname'};
     foreach my $element (keys %{$target{$target_name}}) {
 
 
@@ -190,48 +201,59 @@ foreach my $target_name (keys %target) {
 	    &udp_dns_server_check($target_name,$element,$hostname);
 	    next;
 	} else {
-	    	&hotplugable($target_name,$element,$hostname);
-	    }}}
+	    &hotplugable($target_name,$element,$hostname);
+	}}}
 sleep $interval;
 }
 
 ### ICMP ECHO request section
 sub icmp_echo_check {
     my ($target_name,$element,$hostname)=@_;
+    if ($target{$target_name}{'icmp_echo_check'}) {
     &debug ("ICMP \"$hostname\".\n");
 
-our $p = Net::Ping->new('icmp');
-if ($p->ping($hostname)) {
-    &verbose  ("ICMP OK \"$hostname\".\n");
-} elsif ($p->ping($hostname)) {
-    &verbose  ("ICMP OK \"$hostname\".\n");
-} elsif ($p->ping($hostname)) {
-    &verbose  ("ICMP OK \"$hostname\".\n");
+    our $p = Net::Ping->new('icmp');
+    if ($p->ping($hostname)) {
+	&verbose  ("ICMP OK \"$hostname\".\n");
+    } elsif ($p->ping($hostname)) {
+	&verbose  ("ICMP OK \"$hostname\".\n");
+    } elsif ($p->ping($hostname)) {
+	&verbose  ("ICMP OK \"$hostname\".\n");
     } else {
-	&warning ("ICMP FAILED \"$hostname\".\n");
-    }}
+	&warning ("ICMP FAILED \"$hostname\".\n",$hostname,$element);
+    }} else 
+{ return (0); 
+}}
 
 ### Dns server check section
-### TODO : aks target nameserver for answer 
+
 sub udp_dns_server_check {
     my ($target_name,$element,$hostname)=@_;
+    if ($target{$target_name}{'udp_dns_server_check'}) {
+
     &debug ("DNS Check \"$hostname\".\n");
-    my $res   = Net::DNS::Resolver->new;
-    my $query = $res->search("$hostname");
-  
+    my @nameserver=$hostname;
+    my $res = Net::DNS::Resolver->new(
+				      nameservers => \@nameserver,
+				      recurse     => 1,
+				      debug       => 0,
+				      );
+    my $query = $res->search("$hostname");    
     if ($query) {
 	foreach my $rr ($query->answer) {
 	    next unless $rr->type eq "A";
+
 	}
     } else {
-       &warning ("DNS QUERY FAILED \"$hostname\".\n");
+	&warning ("DNS QUERY FAILED \"$hostname\".\n",$hostname,$element);
     }
-}
-
+} else {
+    return (0);
+}}
 ### NTP server check Ssection
 sub udp_ntp_server_check {
     my ($target_name,$element,$hostname)=@_;
-    &debug ("NTP Check \"$hostname\".\n");
+    &debug ("NTP Check \"$hostname\".\n",$hostname,$element);
 }
 
 ### Hotplugable module
@@ -244,37 +266,37 @@ sub hotplugable {
 
     &debug ("HOTPLUG \"$target_name\" \"$hostname:$dport\".\n");
 
-my $server=IO::Socket::INET->new (
-			        Proto => 'tcp',
-				PeerAddr => $hostname,
-				PeerPort => $dport,
-                                Timeout => 10 ,   #FIXME : looks like timeout is no longer available 
-			  ) or &warning ("Connection Failed \"$target_name\" \"$hostname\:$dport\" :$! .\n");
-our $iftimeout=0;
-if ($server) {
-    alarm $timeout;
-local $SIG{ALRM} = sub { 
-    &warning ("TIMEOUT on \"$element\" : \"$hostname:$dport\".\n");
-    $server->shutdown(2);
-$iftimeout=1;
-};
+    my $server=IO::Socket::INET->new (
+				      Proto => 'tcp',
+				      PeerAddr => $hostname,
+				      PeerPort => $dport,
+				      Timeout => 10 ,   #FIXME : looks like timeout is no longer available 
+				      ) or &warning ("Connection Failed \"$target_name\" \"$hostname\:$dport\" :$! .\n",$hostname,$element);
+    our $iftimeout=0;
+    if ($server) {
+	alarm $timeout;
+	local $SIG{ALRM} = sub { 
+	    &warning ("TIMEOUT on \"$element\" : \"$hostname:$dport\".\n",$hostname,$element);
+	    $server->shutdown(2);
+	    $iftimeout=1;
+	};
 
-print $server "$send".$EOL;
-my @message = <$server>;
+	print $server "$send".$EOL;
+	my @message = <$server>;
 
-close $server;
-    return (1) if ($iftimeout);
-my $matched;
-    alarm 0;
-foreach (@message) {
+	close $server;
+	return (1) if ($iftimeout);
+	my $matched;
+	alarm 0;
+	foreach (@message) {
 
-    if ($_ =~ /$expect/) {
-	&verbose ("Matched \"$element\" on \"$hostname\".\n");
-	$matched=1;
-	last;	    
+	    if ($_ =~ /$expect/) {
+		&verbose ("Matched \"$element\" on \"$hostname\".\n");
+		$matched=1;
+		last;	    
+	    }}
+	&warning ("UNMATCHED \"$element\" on \"$hostname\" , sending \"$send\" and expect \"$expect\" but got \"$message[0]\" .\n",$hostname,$element) unless $matched;
     }}
-&warning ("UNMATCHED \"$element\" on \"$hostname\" , sending \"$send\" and expect \"$expect\" but got \"$message[0]\" .\n") unless $matched;
-}}
 
 
 ### reformat debug messages
@@ -290,8 +312,27 @@ sub verbose {
     }}
 ### reformat warning message and execute warning_command
 sub warning {
-    print ("!!! : ",scalar(localtime)," : $_[0]");
-    print WLOG ("!!! : ",scalar(localtime)," : $_[0]");
-if ($warning_command) { system ("$warning_command")};
-    return (0);
+(my $message,my $hostname,my $element)=@_;
+
+my $date=scalar(localtime);
+
+print ("!!! : $date : $message");
+print WLOG ("!!! : $date : $message");
+
+if ($warning_command) { 
+    chomp $message;
+$warning_command=~ s/\$hostname/$hostname/;
+$warning_command=~ s/\$element/$element/;
+$warning_command=~ s/\$date/$date/;
+$warning_command=~ s/\$error/$message/;
+
+system ($warning_command)};
+return (0);
+}
+
+sub exitlog {
+my $date=scalar(localtime);
+print ("!!! : $date : Yong terminated\n");
+print WLOG ("!!! : $date : Yong Terminated\n");
+exit;
 }

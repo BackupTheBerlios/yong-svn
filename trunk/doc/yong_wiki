@@ -1,0 +1,169 @@
+=====What is yong ? =====
+
+
+Yong is server/network/uptime monitor that is completely independent of server side software , this means that you did not need to run anything on your target server , Yong independently check target server for icmp echo request , dns hostname request , and any tcp based protocol via **hot-pluggable mechanism**  .
+
+=====Features=====
+
+  * its written using Perl 
+  * its independent of server side software's
+  * protocol sniffer is hot-plug based , you can set "send" and set "expect" message and timeout for each protocol
+  * the ability to set Warning command with custom variables , command to execute on warnings
+  * its console-text based
+  * its small ( nearly 350 line of code  ) and flexible 
+
+
+=====hot-pluggable mechanism=====
+
+most of major used tcp protocols are probable using simple telnet , nc commands , this is what Yong exactly does , you can ask yong to prob target tcp port 80 of some webserver , send "GET" and expect something that you expect on html index page <head> for example , this is both **Availability** and **Validity** check .
+
+
+this is how exactly you can add target items in config file :
+
+http:80:"GET":"HEAD":10
+<protocol name>:<target tcp port>:"message to send":"answer to expect":<timeout>
+
+
+=====TODO=====
+
+  * some Mrtg output
+
+
+
+=====Download and Install=====
+
+you can grab a release or currect stable version over SVN , i would suggest using SVN .
+
+file release system url is : 
+https://developer.berlios.de/projects/yong/ 
+===== 
+Getting and Installing yong using SVN : =====
+
+
+you can checkout last stable release of Yong over Berlios svn server anonymously .
+
+$ svn checkout http://svn.berlios.de/svnroot/repos/yong/
+
+A    yong/media\\
+A    yong/media/Yong.png\\
+A    yong/source\\
+A    yong/source/yong\\
+A    yong/config\\
+A    yong/config/yong.conf\\
+A    yong/doc\\
+A    yong/doc/README\\
+A    yong/installer\\
+A    yong/installer/installer\\
+...\\
+\\
+
+now you have last stable release of yong , funny thing is that the easiest way to install yong is to copy file by hand :\\
+$ cd yong\\
+# cp source/yong  /usr/bin\\
+# cp config/yong.conf /etc\\
+
+
+now its available to use go ahed and read Configuration part \\
+===== 
+Getting and installing yong Release package :\\ =====
+
+
+Grab last package of yong at : \\
+https://developer.berlios.de/project/showfiles.php?group_id=7539&release_id=12062\\
+after unpacking enter directory and run installer command :\\
+\\
+$cd yong-...\\
+#./installer\\
+installing yong script in /usr/bin/yong\\
+installing yong.conf /etc/yong.conf\\
+Install Completed . take a look at /etc/yong.conf and README file\\
+\\
+\\
+if you have receive any warnings , thing like that some module is unavailable you have to get that module installed . \\
+\\
+\\
+\\
+===== Configuration ===== 
+\\
+main configuration file , /etc/yong.conf contain single essential **general** section and any number of optional server entries .\\
+
+the general section contain options that affect all available targets .\\
+this is typical general section :\\
+<code>
+general [
+
+interval=1
+
+warning_command=echo "$hostname service $element was unoperational($error) at $date" | mail admin@isp.com -s "problem with $hostname"
+]
+</code>
+
+**interval** is number of second to wait after that total probes are done \\
+**warning_commmand** its the command to execute of warning , this can be freely anything , for example this directive :\\
+<code>warning_command=beep</code>\\
+simply runs the simple beep command without any arguments , you may also want more complex commands for sending mails and or etc so you probably need some useful variables to make more clear warnings , there are allowed variable to specify in warning_command : \\
+<code>
+# $hostname = target hostname\\
+# $element = the element , http for example\\
+# $date = current date\\
+# $error = error message , ex : connection refused , timeout , ...
+</code>s
+using this variable you are able to create much better warning command , for example :\\
+warning_command= echo "$hostname:$element is down , problem is $error" | wall \\
+\\
+\\
+\\
+
+yong calls each of entries as "target" , for example :\\
+
+<code>
+example_server {
+servername=example.com
+udp_dns_server_check=1
+udp_ntp_server_check=1
+icmp_echo_check=1
+http:80:"GET":"HEAD":10
+pop3:110:"QUIT":"OK":10
+ftp:21:"QUIT":"221":10
+smtp:25:"quit":"":10
+ssh:22:"Hola!":"mismatch":10
+}
+</code>
+
+in this example , **hostname** is 'example.com' while all of 'http','pop3','ftp','smtp','ssh' are **elements** , the target entry is quite simple , you can understand if all on your own , anyway im going to explain it a little here :\\
+
+you always have to start entry with a name , example_server in ths example and keep directives of target enclosed in { and } \\
+\\
+**servername** is main and most essential part of any target entry , its FQDN of target server , it can be IP address or hostname that is resolved into Right ip address \\
+**udp_dns_server_check** takes bolean value to check to check if target dns server responding to its own queries or not , yong asks A record of servername from target dns server \\
+**udp_ntp_server_check** takes bolean value to check to check if target NTP server responding to its own queries or not \\
+**icmp_echo_check** send icmp echo request to target or not , its mainly good thing to do unless icmp packets get discarded in your envinronment .\\
+\\
+
+that was the essential parts of target entry , the rest of them are most useful and like all good thing , Optional :\\
+the hotplugable probing mechanism is simple :\\
+
+<code><protocol name>:<target tcp port>:"message to send":"answer to expect":<timeout></code>\\
+**<protocol name>**: this can be anything , its interval\\
+**<target tcp port>**: target tcp port of protocol , 80 for web\\
+**"message to send"**: message to send for server , "GET /" for web\\
+**"message to expect"**: message expected to receive , "<HEAD>" for web\\
+**<timeout>**: timeout for given session .\\
+\\
+
+easy hum ? well , lets set some example , suppose you have heavily loaded web server and you want to get noticed when its get crashed , also there are some security weakesses that allows some remote attacker to change target index page .\\
+
+yong target entry for that server would look like :
+
+<code>
+target_webserver {
+servername=webserver.isp.net
+udp_dns_server_check=0
+udp_ntp_server_check=0
+icmp_echo_check=1
+http:80:"GET":"<b>isp</b>":10
+}
+</code>
+
+this entry will ask GET to get index html , if target server was unable to respond in 10 second the warning command is generated , otherwise yong will check the result of command to see if its maching "<b>isp</b>" which is some string that you are sure is always available on your index page , a warning_command will get generated if result did not matched to given string .\\
+
