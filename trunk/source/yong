@@ -263,9 +263,7 @@ sub hotplugable {
     my $timeout=$target{$target_name}{$element}{'timeout'};
     my $send=$target{$target_name}{$element}{'send'};
     my $expect=$target{$target_name}{$element}{'expect'};
-
-    &debug ("HOTPLUG \"$target_name\" \"$hostname:$dport\".\n");
-
+    &debug ("HOTPLUG \"$target_name\" \"$hostname:$dport:$element\".\n");
     my $server=IO::Socket::INET->new (
 				      Proto => 'tcp',
 				      PeerAddr => $hostname,
