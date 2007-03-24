@@ -15,7 +15,8 @@
 # TODO : 
 # ntp element 
 # MRTG output 
-
+# Downtime logger ( date 2:22 4:22 :: 2 hour ) 
+#
 
 # BUG : 
 # none known 
