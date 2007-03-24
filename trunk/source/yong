@@ -35,6 +35,7 @@ my $verbose=0;                    # Verbose mode
 my $interval=5;                   # target checking interval
 my $http_page_size_check;         # check result page size for huge changes
 my $warning_command;              # command to exec on warnings
+my $run_in_daemon;                # does yong have to run in daemon mode or not
 my $wlog='/var/log/yong.log';     # warning logs
 
 our %target;                      # main targets hash
@@ -79,6 +80,7 @@ foreach my $command (@ARGV) {
 	print "-c to specify another config file\n";
 	print "-v to be little more verbose\n";
 	print "-D to run in debug mode\n";
+	print "--daemon to run in daemon mode\n";
 	print "--help to see this message\n";
 	print "\n";
 	print "Yong is a tool monitoring services over servers/targets .\n";
@@ -93,6 +95,9 @@ foreach my $command (@ARGV) {
 	next;
     } elsif ($command =~ '-*c') {
 	$next_is_config_file=1;
+	next;
+    } elsif ($command =~ '--daemon') {
+	$run_in_daemon=1;
 	next;
     } elsif ($command =~ '-*l') {
 	$next_is_wlog_file=1;
@@ -178,12 +183,16 @@ foreach my $line (@config_buffer) {
 
 close CONFIG;
 
+if ($run_in_daemon) {
+print "\n--- Probing started --- ",scalar(localtime),"\n";
+exit if fork;
+};
 
 ### probing section
 
-print "\n--- Probing started --- ",scalar(localtime),"\n\n";
+unless ($run_in_daemon) {print "\n--- Probing started --- ",scalar(localtime),"\n\n";};
 while (1) {
-    print "--- ",scalar(localtime),"\n";
+    unless ($run_in_daemon) { print "--- ",scalar(localtime),"\n"; };
 
 foreach my $target_name (keys %target) {
     my $hostname=$target{$target_name}{'hostname'};
@@ -301,13 +310,13 @@ sub hotplugable {
 ### reformat debug messages
 sub debug {
     if ($debug) {
-	print "### DEBUG : $_[0]";
+	unless ($run_in_daemon) {print "### DEBUG : $_[0]";};
     }}
 
 ### reformat verbose message
 sub verbose {
     if ($verbose) {
-	print "III : $_[0]";
+	unless ($run_in_daemon) {print "III : $_[0]";};
     }}
 ### reformat warning message and execute warning_command
 sub warning {
@@ -315,7 +324,7 @@ sub warning {
 
 my $date=scalar(localtime);
 
-print ("!!! : $date : $message");
+unless ($run_in_daemon) {print ("!!! : $date : $message");};
 print WLOG ("!!! : $date : $message");
 
 if ($warning_command) { 
@@ -330,7 +339,7 @@ return (0);
 
 sub exitlog {
 my $date=scalar(localtime);
-print ("!!! : $date : Yong terminated\n");
+unless ($run_in_daemon) {print ("!!! : $date : Yong terminated\n");};
 print WLOG ("!!! : $date : Yong Terminated\n");
 exit;
 }
