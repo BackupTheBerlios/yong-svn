@@ -13,10 +13,12 @@
 #
 
 # TODO : 
-# ntp element 
-# MRTG output 
-# Downtime logger ( date 2:22 4:22 :: 2 hour ) 
+# ntp element ( prio 10 )
+# MRTG output ( prio 15 ) 
+# Downtime logger ( date 2:22 4:22 :: 2 hour ) ( prio 19 ) 
 #
+#
+
 
 # BUG : 
 # none known 
@@ -260,8 +262,8 @@ sub udp_dns_server_check {
 } else {
     return (0);
 }}
-### NTP server check Ssection
-sub udp_ntp_server_check {
+### NTP server check Section
+sub udp_ntp_server_check {e
     my ($target_name,$element,$hostname)=@_;
     &debug ("NTP Check \"$hostname\".\n",$hostname,$element);
 }
