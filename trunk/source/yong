@@ -263,7 +263,7 @@ sub udp_dns_server_check {
     return (0);
 }}
 ### NTP server check Section
-sub udp_ntp_server_check {e
+sub udp_ntp_server_check {
     my ($target_name,$element,$hostname)=@_;
     &debug ("NTP Check \"$hostname\".\n",$hostname,$element);
 }
