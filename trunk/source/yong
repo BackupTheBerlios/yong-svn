@@ -25,7 +25,8 @@
 
 
 use strict;
-use warnings;
+# i do disable warnings for users
+#use warnings;
 use IO::Socket::INET;
 use Net::Ping;
 use Net::DNS;
