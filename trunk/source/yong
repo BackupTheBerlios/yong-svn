@@ -12,21 +12,23 @@
 # any later version.
 #
 
+#
 # TODO : 
 # ntp element ( prio 10 )
-# MRTG output ( prio 15 ) 
-# Downtime logger ( date 2:22 4:22 :: 2 hour ) ( prio 19 ) 
-#
+# yong-ctl , to reload configuration file , stop warnings about particular host
+# and Downtime logger , some loger that you can ask about particular downtime 
+# on service / host , this would be useful
 #
 
 
 # BUG : 
-# none known 
+# none known,let me know if you got some! 
+#
 
 
-use strict;
-# i do disable warnings for users
+# i do disable warnings for releases
 use warnings;
+use strict;
 use IO::Socket::INET;
 use Net::Ping;
 use Net::DNS;
@@ -187,7 +189,7 @@ foreach my $line (@config_buffer) {
 close CONFIG;
 
 if ($run_in_daemon) {
-print "\n--- Probing started --- ",scalar(localtime),"\n";
+print "\n--- Probing started ( Daemon mode ) --- ",scalar(localtime),"\n";
 exit if fork;
 };
 
