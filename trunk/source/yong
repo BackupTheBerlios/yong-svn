@@ -26,7 +26,7 @@
 
 use strict;
 # i do disable warnings for users
-#use warnings;
+use warnings;
 use IO::Socket::INET;
 use Net::Ping;
 use Net::DNS;
@@ -323,7 +323,7 @@ sub verbose {
     }}
 ### reformat warning message and execute warning_command
 sub warning {
-(my $message,my $hostname,my $element)=@_;
+my ($message,$hostname,$element)=@_;
 
 my $date=scalar(localtime);
 
@@ -331,12 +331,15 @@ unless ($run_in_daemon) {print ("!!! : $date : $message");};
 print WLOG ("!!! : $date : $message");
 
 if ($warning_command) { 
+    my $own_warning_command=$warning_command;
     chomp $message;
-$warning_command=~ s/\$hostname/$hostname/;
-$warning_command=~ s/\$element/$element/;
-$warning_command=~ s/\$date/$date/;
-$warning_command=~ s/\$error/$message/;
-system ($warning_command)};
+$own_warning_command=~ s/\$hostname/$hostname/;
+$own_warning_command=~ s/\$element/$element/;
+$own_warning_command=~ s/\$date/$date/;
+$own_warning_command=~ s/\$error/$message/;
+
+system ($own_warning_command)
+};
 return (0);
 }
 
