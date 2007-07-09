@@ -11,16 +11,17 @@
 # Software Foundation; either version 2 of the License, or (at your option) 
 # any later version.
 #
-
+#
 #
 # TODO : 
 # ntp element ( prio 10 )
 # yong-ctl , to reload configuration file , stop warnings about particular host
 # and Downtime logger , some loger that you can ask about particular downtime 
-# on service / host , this would be useful
+# on service / host , this would be useful . create subrouting and forward signal,
+# subroutine has to list target_hosts and ability to disable or enable hosts
 #
-
-
+#
+#
 # BUG : 
 # none known,let me know if you got some! 
 #
@@ -55,6 +56,7 @@ $SIG{INT} = \&exitlog;
 $SIG{QUIT} = \&exitlog;
 $SIG{KILL} = \&exitlog;
 $SIG{TERM} = \&exitlog;
+$SIG{USR1} = \&yongctl;
 
 
 die "Failed to load config file $config_file : $!\n" unless (-r $config_file);
@@ -195,15 +197,16 @@ exit if fork;
 
 ### probing section
 
+
+
 unless ($run_in_daemon) {print "\n--- Probing started --- ",scalar(localtime),"\n\n";};
 while (1) {
     unless ($run_in_daemon) { print "--- ",scalar(localtime),"\n"; };
 
 foreach my $target_name (keys %target) {
+    next if ($target{$target_name}{'disable'});
     my $hostname=$target{$target_name}{'hostname'};
     foreach my $element (keys %{$target{$target_name}}) {
-
-
 	if ($element =~ 'hostname') {
 	    next;
 	} elsif ($element =~ 'icmp_echo_check') {
@@ -333,17 +336,29 @@ unless ($run_in_daemon) {print ("!!! : $date : $message");};
 print WLOG ("!!! : $date : $message");
 
 if ($warning_command) { 
-    my $own_warning_command=$warning_command;
-    chomp $message;
-$own_warning_command=~ s/\$hostname/$hostname/;
-$own_warning_command=~ s/\$element/$element/;
-$own_warning_command=~ s/\$date/$date/;
-$own_warning_command=~ s/\$error/$message/;
-
+my $own_warning_command=$warning_command;
+chomp $message;
+  $own_warning_command=~ s/\$hostname/$hostname/;
+  $own_warning_command=~ s/\$element/$element/;
+  $own_warning_command=~ s/\$date/$date/;
+  $own_warning_command=~ s/\$error/$message/;
 system ($own_warning_command)
 };
 return (0);
 }
+
+sub yongctl {
+    my ($targetname,$action)=@_;
+    if ($action =~ 'disable') {
+$target{$targetname}{'disable'}=1;
+};
+    if ($action =~ 'enable') {
+undef $target{$targetname}{'disable'};
+};
+
+
+}
+
 
 sub exitlog {
 my $date=scalar(localtime);
