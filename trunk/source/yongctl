@@ -1,0 +1,12 @@
+#!/usr/bin/perl
+# 
+# its nothing for a while
+#
+use strict;
+use warnings;
+
+my $pid=`pidof -x yong`;
+
+print $pid;
+
+
