@@ -26,14 +26,12 @@
 # none known,let me know if you got some! 
 #
 
-
 # i do disable warnings for releases
 use warnings;
 use strict;
 use IO::Socket::INET;
 use Net::Ping;
 use Net::DNS;
-
 my $EOL = "\015\012";
 my $config_file='/etc/yong.conf'; # main config file 
 my $debug=0;                      # Debug mode
@@ -43,13 +41,10 @@ my $http_page_size_check;         # check result page size for huge changes
 my $warning_command;              # command to exec on warnings
 my $run_in_daemon;                # does yong have to run in daemon mode or not
 my $wlog='/var/log/yong.log';     # warning logs
-
 our %target;                      # main targets hash
-
 my $next_is_config_file;         
 my $next_is_wlog_file;         
 my $current_target;
-
 
 $SIG{HUP} = \&exitlog;
 $SIG{INT} = \&exitlog;
@@ -58,11 +53,8 @@ $SIG{KILL} = \&exitlog;
 $SIG{TERM} = \&exitlog;
 $SIG{USR1} = \&yongctl;
 
-
 die "Failed to load config file $config_file : $!\n" unless (-r $config_file);
-
 ### start reading command run time arguments 
-
 foreach my $command (@ARGV) {
     if ($next_is_config_file) {
 	if (-r "$command") {
@@ -74,14 +66,12 @@ foreach my $command (@ARGV) {
 	$next_is_config_file=0;
 	next;
     }
-
     if ($next_is_wlog_file) {
 	&debug ("Log path is now $command\n");
 	$wlog=$command;
         $next_is_wlog_file=0;
 	next;
     }
-
     if ($command =~ '-*help') {
 	print "Yet anOther Network monitorinG\n";
 	print "-c to specify another config file\n";
@@ -111,16 +101,13 @@ foreach my $command (@ARGV) {
 	next;
     }}
 undef $next_is_config_file;
-
 ### start reading config file and put variables into main hash
 open CONFIG,"<$config_file" or die "unable to open config file : $! \n";
 open WLOG,">$wlog" or die "unable to open config file : $! \n";
 select WLOG; 
 $|=1;
 select STDOUT;
-
 my @config_buffer=<CONFIG>;
-
 foreach my $line (@config_buffer) {
     next if ($line =~ /^\#/ );
     chomp $line;
@@ -129,7 +116,6 @@ foreach my $line (@config_buffer) {
 	$interval=$line;
 	&debug ("Interval is $line\n");
     }
-
 
     elsif ($line =~ /http_page_size_check=/) {
 	$line=~ s/http_page_size_check=//;
@@ -141,38 +127,30 @@ foreach my $line (@config_buffer) {
 	$warning_command=$line;
 	&debug ("warning command is $line\n");
     }
-
     elsif ($line =~ /\{/) {
 	$line=~ s/\W*\{\W*//;
 	$current_target=$line;
 	print "--- Gathering \"$current_target\" information\n";
     }
-
     elsif ($line =~ /servername=/) {
 	$line =~ s/servername=//;
 	$target{$current_target}{'hostname'}=$line;
     }
-
     elsif ($line =~ /icmp_echo_check=/) {
 	$line =~ s/icmp_echo_check=//;
 	$target{$current_target}{'icmp_echo_check'}=$line;
     }
-
     elsif ($line =~ /udp_dns_server_check=/) {
 	$line =~ s/udp_dns_server_check=//;
 	$target{$current_target}{'udp_dns_server_check'}=$line;
-
     }
-
     elsif ($line =~ /udp_ntp_server_check=/) {
 	$line =~ s/udp_ntp_server_check=//;
 	$target{$current_target}{'udp_ntp_server_check'}=$line;
     }
-
     elsif ($line =~ /.*:.*:.*:/) {
 	$line =~ s/\"//g;
 	my @contain=(split (':',$line));
-
 
 	$target{$current_target}{$contain[0]}{'service_name'}=$contain[0];
 	$target{$current_target}{$contain[0]}{'dport'}=$contain[1];
@@ -187,22 +165,16 @@ foreach my $line (@config_buffer) {
     &warning ("Error on Directive \"$line\"\n\n");
 }
 }
-
 close CONFIG;
-
 if ($run_in_daemon) {
 print "\n--- Probing started ( Daemon mode ) --- ",scalar(localtime),"\n";
 exit if fork;
 };
-
 ### probing section
-
-
 
 unless ($run_in_daemon) {print "\n--- Probing started --- ",scalar(localtime),"\n\n";};
 while (1) {
     unless ($run_in_daemon) { print "--- ",scalar(localtime),"\n"; };
-
 foreach my $target_name (keys %target) {
     next if ($target{$target_name}{'disable'});
     my $hostname=$target{$target_name}{'hostname'};
@@ -223,13 +195,11 @@ foreach my $target_name (keys %target) {
 	}}}
 sleep $interval;
 }
-
 ### ICMP ECHO request section
 sub icmp_echo_check {
     my ($target_name,$element,$hostname)=@_;
     if ($target{$target_name}{'icmp_echo_check'}) {
     &debug ("ICMP \"$hostname\".\n");
-
     our $p = Net::Ping->new('icmp');
     if ($p->ping($hostname)) {
 	&verbose  ("ICMP OK \"$hostname\".\n");
@@ -242,13 +212,10 @@ sub icmp_echo_check {
     }} else 
 { return (0); 
 }}
-
 ### Dns server check section
-
 sub udp_dns_server_check {
     my ($target_name,$element,$hostname)=@_;
     if ($target{$target_name}{'udp_dns_server_check'}) {
-
     &debug ("DNS Check \"$hostname\".\n");
     my @nameserver=$hostname;
     my $res = Net::DNS::Resolver->new(
@@ -260,7 +227,6 @@ sub udp_dns_server_check {
     if ($query) {
 	foreach my $rr ($query->answer) {
 	    next unless $rr->type eq "A";
-
 	}
     } else {
 	&warning ("DNS QUERY FAILED \"$hostname\".\n",$hostname,$element);
@@ -273,7 +239,6 @@ sub udp_ntp_server_check {
     my ($target_name,$element,$hostname)=@_;
     &debug ("NTP Check \"$hostname\".\n",$hostname,$element);
 }
-
 ### Hotplugable module
 sub hotplugable {
     my ($target_name,$element,$hostname)=@_;
@@ -296,16 +261,13 @@ sub hotplugable {
 	    $server->shutdown(2);
 	    $iftimeout=1;
 	};
-
 	print $server "$send".$EOL;
 	my @message = <$server>;
-
 	close $server;
 	return (1) if ($iftimeout);
 	my $matched;
 	alarm 0;
 	foreach (@message) {
-
 	    if ($_ =~ /$expect/) {
 		&verbose ("Matched \"$element\" on \"$hostname\".\n");
 		$matched=1;
@@ -314,13 +276,11 @@ sub hotplugable {
 	&warning ("UNMATCHED \"$element\" on \"$hostname\" , sending \"$send\" and expect \"$expect\" but got \"$message[0]\" .\n",$hostname,$element) unless $matched;
     }}
 
-
 ### reformat debug messages
 sub debug {
     if ($debug) {
 	unless ($run_in_daemon) {print "### DEBUG : $_[0]";};
     }}
-
 ### reformat verbose message
 sub verbose {
     if ($verbose) {
@@ -329,12 +289,9 @@ sub verbose {
 ### reformat warning message and execute warning_command
 sub warning {
 my ($message,$hostname,$element)=@_;
-
 my $date=scalar(localtime);
-
 unless ($run_in_daemon) {print ("!!! : $date : $message");};
 print WLOG ("!!! : $date : $message");
-
 if ($warning_command) { 
 my $own_warning_command=$warning_command;
 chomp $message;
@@ -346,7 +303,6 @@ system ($own_warning_command)
 };
 return (0);
 }
-
 sub yongctl {
     my ($targetname,$action)=@_;
     if ($action =~ 'disable') {
@@ -356,9 +312,7 @@ $target{$targetname}{'disable'}=1;
 undef $target{$targetname}{'disable'};
 };
 
-
 }
-
 
 sub exitlog {
 my $date=scalar(localtime);
